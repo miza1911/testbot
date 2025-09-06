@@ -1,8 +1,4 @@
-app = "testbot"   # поменяй на уникальное имя
-primary_region = "sin"      # Токио — ближе всего к KR; можно "hkg" или "sin"
-
-kill_signal = "SIGINT"
-kill_timeout = "5s"
+app = "testbot"   # замени на имя приложения на Fly
 
 [build]
   dockerfile = "Dockerfile"
@@ -11,12 +7,8 @@ kill_timeout = "5s"
   PYTHONUNBUFFERED = "1"
 
 [processes]
-  app = "python main.py"
+  app = "python bot.py"
 
-# Автоперезапуск, если процесс упал
-[checks]
-  [checks.alive]
-    type = "process"
-    interval = "15s"
-    timeout = "5s"
-    grace_period = "10s"
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256MB"
