@@ -1,14 +1,23 @@
-app = "PLACEHOLDER_APP_NAME"
+app = "testbot"        # <-- точное имя твоего приложения
+primary_region = "sin"
 
 [build]
   dockerfile = "Dockerfile"
 
 [env]
-  PYTHONUNBUFFERED = "1"
+  PORT = "8080"
 
-[processes]
-  app = "python bot.py"
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
 
-[[vm]]
-  size = "shared-cpu-1x"
-  memory = "256MB"
+[[http_service.checks]]
+  grace_period = "10s"
+  interval = "15s"
+  method = "GET"
+  path = "/"
+  protocol = "http"
+  timeout = "2s"
