@@ -1,4 +1,7 @@
-app = "testbot"   # замени на имя приложения на Fly
+# fly.toml app configuration file generated for ANY telegram bot
+# Имя приложения Fly подставляется автоматически при деплое
+
+app = "PLACEHOLDER_APP_NAME"
 
 [build]
   dockerfile = "Dockerfile"
