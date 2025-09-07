@@ -3,16 +3,17 @@ import random
 from uuid import uuid4
 from dotenv import load_dotenv
 
-from telegram import InlineQueryResultPhoto
+from telegram import InlineQueryResultArticle, InputTextMessageContent, InputMediaPhoto
 from telegram.constants import ParseMode
 from telegram.ext import (
     Application,
     CommandHandler,
     ContextTypes,
     InlineQueryHandler,
+    ChosenInlineResultHandler,
 )
 
-# Для локалки читаем .env; на Fly используем Secrets
+# Загружаем .env только для локального запуска; на Fly используем Secrets
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -28,7 +29,7 @@ def _load_images():
     ]
 
 IMAGES = _load_images()
-PREVIEW_URL = os.getenv("PREVIEW_URL") or (IMAGES[0] if IMAGES else None)
+PREVIEW_URL = os.getenv("PREVIEW_URL") or IMAGES[0]
 
 def username_or_name(user) -> str:
     if user.username:
@@ -39,19 +40,7 @@ def username_or_name(user) -> str:
 def make_caption(for_user) -> str:
     return f"{for_user} · Твое предсказание дня {random.choice(EMOJIS)}"
 
-# /start /help — твой текст я оставил по сути таким же
 async def start(update, context: ContextTypes.DEFAULT_TYPE):
     me = await context.bot.get_me()
     uname = me.username
     msg = (
-        "Я приятный бот который умеет делать комплименты.\n\n"
-        "• Команда для получения комплимента дня: /komplinos\n"
-        f"• Inline в любом чате: напиши @{uname} и выбери карточку."
-    )
-    await update.message.reply_text(msg)
-
-async def _send_prediction(update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-    caption = make_caption(username_or_name(user))
-    photo_url = random.choice(IMAGES)
-    await update.message.reply_photo(photo=p_
