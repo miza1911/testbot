@@ -1,4 +1,4 @@
-app = "testbot"        # <-- точное имя твоего приложения
+app = "bot-z0lezq"        # <-- точное имя твоего приложения
 primary_region = "sin"
 
 [build]
