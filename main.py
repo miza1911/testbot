@@ -26,9 +26,10 @@ def _load_images():
     env = (os.getenv("IMAGES") or "").strip()
     if env:
         return [u.strip() for u in env.split(",") if u.strip()]
+    # запасные ссылки (лучше задать свои в IMAGES)
     return [
-        "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee",
-        "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429",
+        "https://res.cloudinary.com/deqdwmnqg/image/upload/v1757206158/IMG_7502_bfnohz.jpg",
+        "https://res.cloudinary.com/deqdwmnqg/image/upload/v1757206159/593F87AF-71CD-4637-8DCC-F54D1B8CF9F2-removebg_oqlssn.png",
     ]
 
 IMAGES = _load_images()
@@ -48,7 +49,7 @@ async def start(update, context: ContextTypes.DEFAULT_TYPE):
     msg = (
         "Я отправляю картинку-предсказание с твоим именем.\n\n"
         "• Команда: /predict\n"
-        f"• Inline: напиши @{uname} в любом чате."
+        f"• Inline в любом чате: напиши @{uname} и выбери карточку."
     )
     await update.message.reply_text(msg)
 
@@ -71,6 +72,7 @@ async def inline_query(update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode=ParseMode.HTML,
     )
 
+    # Доп. текстовая плитка (можно оставить/убрать)
     result_article = InlineQueryResultArticle(
         id=str(uuid4()),
         title="Предсказание (текст)",
@@ -82,7 +84,7 @@ async def inline_query(update, context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     if not BOT_TOKEN:
-        raise RuntimeError("BOT_TOKEN не найден. Укажи его через Secrets (или .env локально)")
+        raise RuntimeError("BOT_TOKEN не найден. Добавь его в Secrets на Fly")
 
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler(["start", "help"], start))
