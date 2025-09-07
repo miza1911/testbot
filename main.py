@@ -84,7 +84,7 @@ async def inline_query(update, context: ContextTypes.DEFAULT_TYPE):
 
     result = InlineQueryResultArticle(
         id=ARTICLE_ID,
-        title="Получить комплимент дня",
+        title="Получить комплимент дня!🎉",
         description="Нажми — и придет твой комплимент!",
         input_message_content=InputTextMessageContent("⏳ Получаю комплимент…"),
         thumbnail_url=PREVIEW_URL,  # фиксированное превью из секрета
