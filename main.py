@@ -2,6 +2,7 @@ import os
 import random
 from uuid import uuid4
 from dotenv import load_dotenv
+
 from telegram import InlineQueryResultPhoto
 from telegram.constants import ParseMode
 from telegram.ext import (
@@ -38,7 +39,7 @@ def username_or_name(user) -> str:
 def make_caption(for_user) -> str:
     return f"{for_user} · Твое предсказание дня {random.choice(EMOJIS)}"
 
-# /start /help
+# /start /help — твой текст я оставил по сути таким же
 async def start(update, context: ContextTypes.DEFAULT_TYPE):
     me = await context.bot.get_me()
     uname = me.username
@@ -49,36 +50,8 @@ async def start(update, context: ContextTypes.DEFAULT_TYPE):
     )
     await update.message.reply_text(msg)
 
-# /predict — сразу отправляем фото
-async def predict_cmd(update, context: ContextTypes.DEFAULT_TYPE):
+async def _send_prediction(update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     caption = make_caption(username_or_name(user))
     photo_url = random.choice(IMAGES)
-    await update.message.reply_photo(
-        photo=photo_url,
-        caption=caption,
-        parse_mode=ParseMode.HTML
-    )
-
-# INLINE: одна карточка с фиксированным превью, в чат уходит случайная картинка
-async def inline_query(update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.inline_query.from_user
-    print(f"INLINE query from @{user.username or user.id}")
-
-    caption = make_caption(username_or_name(user))
-    photo_url = random.choice(IMAGES)
-    thumb = PREVIEW_URL if PREVIEW_URL else photo_url
-
-    result_photo = InlineQueryResultPhoto(
-        id=str(uuid4()),
-        photo_url=photo_url,
-        thumbnail_url=thumb,
-        caption=caption,
-        parse_mode=ParseMode.HTML,
-    )
-
-    await update.inline_query.answer([result_photo], cache_time=0, is_personal=True)
-
-def main():
-    if
-
+    await update.message.reply_photo(photo=p_
