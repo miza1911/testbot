@@ -1,4 +1,4 @@
-app = "bot-z0lezq"  # оставь имя приложения как у тебя на Fly
+app = "testbot-hcdlda"  # оставь имя приложения как у тебя на Fly
 primary_region = "sin"
 
 kill_signal = "SIGINT"
