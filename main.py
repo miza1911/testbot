@@ -139,7 +139,7 @@ def main():
 
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler(["start", "help"], start))
-   app.add_handler(CommandHandler(["nos", "predict"], predict_cmd))
+    app.add_handler(CommandHandler(["nos", "predict"], predict_cmd))
     app.add_handler(InlineQueryHandler(inline_query))
     app.add_handler(ChosenInlineResultHandler(on_chosen_inline))     # 1-тап сценарий
     app.add_handler(CallbackQueryHandler(on_callback))               # запасной сценарий
