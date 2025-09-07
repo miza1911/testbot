@@ -16,7 +16,8 @@ from telegram.ext import (
     InlineQueryHandler,
 )
 
-load_dotenv()  # .env — только для локалки; на Fly используем Secrets
+# Загружаем .env только для локального запуска; на Fly используем Secrets
+load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 EMOJIS = ["✨", "🌟", "🍀", "🌈", "💫", "🧿", "🪄", "🎉", "☀️", "🌸"]
@@ -25,6 +26,7 @@ def _load_images():
     env = (os.getenv("IMAGES") or "").strip()
     if env:
         return [u.strip() for u in env.split(",") if u.strip()]
+    # запасные картинки, если не задан IMAGES
     return [
         "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee",
         "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429",
@@ -55,20 +57,24 @@ async def predict_cmd(update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     caption = make_caption(username_or_name(user))
     photo_url = random.choice(IMAGES)
-    await update.message.reply_photo(photo=photo_url, caption=caption, parse_mode=ParseMode.HTML)
+    await update.message.reply_photo(
+        photo=photo_url,
+        caption=caption,
+        parse_mode=ParseMode.HTML
+    )
 
 async def inline_query(update, context: ContextTypes.DEFAULT_TYPE):
     user = update.inline_query.from_user
     # логируем в консоль, чтобы видеть запросы в Fly Logs
     print(f"INLINE query from @{user.username or user.id}")
-    
+
     caption = make_caption(username_or_name(user))
     photo_url = random.choice(IMAGES)
 
     result_photo = InlineQueryResultPhoto(
         id=str(uuid4()),
         photo_url=photo_url,
-        thumb_url=photo_url,
+        thumbnail_url=photo_url,  # исправлено: thumbnail_url вместо thumb_url
         caption=caption,
         parse_mode=ParseMode.HTML,
     )
@@ -80,8 +86,11 @@ async def inline_query(update, context: ContextTypes.DEFAULT_TYPE):
         input_message_content=InputTextMessageContent(caption),
     )
 
-    await update.inline_query.answer([result_photo, result_article], cache_time=0, is_personal=True)
-
+    await update.inline_query.answer(
+        [result_photo, result_article],
+        cache_time=0,
+        is_personal=True
+    )
 
 def main():
     if not BOT_TOKEN:
@@ -95,4 +104,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
