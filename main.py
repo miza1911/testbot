@@ -3,11 +3,8 @@ import random
 from uuid import uuid4
 from dotenv import load_dotenv
 
-from telegram import (
-    InlineQueryResultArticle,
-    InputTextMessageContent,
-    InputMediaPhoto,
-)
+# --- импорты (убрал дубли) ---
+from telegram import InlineQueryResultArticle, InputTextMessageContent, InputMediaPhoto
 from telegram.constants import ParseMode
 from telegram.ext import (
     Application,
@@ -34,6 +31,7 @@ def _load_images():
     ]
 
 IMAGES = _load_images()
+
 # Превью для всплывающего окна: можно задать секретом PREVIEW_URL,
 # иначе возьмём первую картинку из IMAGES.
 PREVIEW_URL = os.getenv("PREVIEW_URL") or (IMAGES[0] if IMAGES else None)
@@ -52,20 +50,28 @@ async def start(update, context: ContextTypes.DEFAULT_TYPE):
     me = await context.bot.get_me()
     uname = me.username
     msg = (
-        "Я отправляю картинку-предсказание с твоим именем.\n\n"
-        "• Команда: /predict\n"
-        f"• Inline: напиши @{uname} и выбери «Получить предсказание»."
+        "Я приятный бот который умеет делать комплименты.\n\n"
+        "• Команда для получения комплимента дня: /komplinos\n"
+        
     )
     await update.message.reply_text(msg)
 
-# /predict — сразу отправляем фото
-async def predict_cmd(update, context: ContextTypes.DEFAULT_TYPE):
+# общая функция отправки картинки-предсказания
+async def _send_prediction(update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     caption = make_caption(username_or_name(user))
     photo_url = random.choice(IMAGES)
     await update.message.reply_photo(photo=photo_url, caption=caption, parse_mode=ParseMode.HTML)
 
-# INLINE: одна текстовая плитка с превью-миниатюрой
+# /predict — оставил для совместимости (если ты её уже пробовал)
+async def predict_cmd(update, context: ContextTypes.DEFAULT_TYPE):
+    await _send_prediction(update, context)
+
+# /komplinos — команда из твоего описания
+async def komplinos_cmd(update, context: ContextTypes.DEFAULT_TYPE):
+    await _send_prediction(update, context)
+
+# INLINE: одна текстовая плитка с постоянной миниатюрой (превью), при клике — рандомное фото
 ARTICLE_ID = "predict_inline"
 
 async def inline_query(update, context: ContextTypes.DEFAULT_TYPE):
@@ -75,10 +81,9 @@ async def inline_query(update, context: ContextTypes.DEFAULT_TYPE):
     result_article = InlineQueryResultArticle(
         id=ARTICLE_ID,
         title="Получить предсказание",
-        description="Нажми — отправим картинку с твоим именем",
+        description="Нажми — и получишь комплимент дня!",
         input_message_content=InputTextMessageContent("⏳ Получаю предсказание…"),
-        # миниатюра во всплывающем окне — всегда одна и та же
-        thumbnail_url=PREVIEW_URL if PREVIEW_URL else None,
+        thumbnail_url=PREVIEW_URL if PREVIEW_URL else None,  # одна и та же картинка во всплывашке
     )
 
     await update.inline_query.answer([result_article], cache_time=0, is_personal=True)
@@ -109,7 +114,8 @@ def main():
 
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler(["start", "help"], start))
-    app.add_handler(CommandHandler("predict", predict_cmd))
+    app.add_handler(CommandHandler("predict", predict_cmd))     # совместимость
+    app.add_handler(CommandHandler("komplinos", komplinos_cmd)) # твоя команда из описания
     app.add_handler(InlineQueryHandler(inline_query))
     app.add_handler(ChosenInlineResultHandler(on_chosen_inline))
 
