@@ -60,9 +60,9 @@ async def start(update, context: ContextTypes.DEFAULT_TYPE):
     me = await context.bot.get_me()
     uname = me.username
     msg = (
-        "Я отправляю картинку-предсказание с твоим именем.\n\n"
-        "• Команда: /predict\n"
-        f"• Inline в любом чате: напиши @{uname} и выбери карточку."
+        "Привет, салам, бонжур! Я умею делать комплименты.\n\n"
+        "• Команда для получения комплимента: /nos\n"
+        
     )
     await update.message.reply_text(msg)
 
@@ -84,9 +84,9 @@ async def inline_query(update, context: ContextTypes.DEFAULT_TYPE):
 
     result = InlineQueryResultArticle(
         id=ARTICLE_ID,
-        title="Получить предсказание",
-        description="Нажми — и придет твое предсказание дня!",
-        input_message_content=InputTextMessageContent("⏳ Получаю предсказание…"),
+        title="Получить комплимент дня",
+        description="Нажми — и придет твой комплимент!",
+        input_message_content=InputTextMessageContent("⏳ Получаю комплимент…"),
         thumbnail_url=PREVIEW_URL,  # фиксированное превью из секрета
         reply_markup=InlineKeyboardMarkup(
             [[InlineKeyboardButton("Получить сейчас", callback_data=BTN_PAYLOAD)]]
