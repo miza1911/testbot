@@ -45,7 +45,7 @@ def username_or_name(user) -> str:
     return name
 
 def make_caption(for_user) -> str:
-    return f"{for_user} · Твое предсказание дня {random.choice(EMOJIS)}"
+    return f"{for_user} · Твой комплимент дня! {random.choice(EMOJIS)}"
 
 def pick_random_photo() -> str:
     # лёгкий анти-повтор: не возвращаем один и тот же URL дважды подряд
