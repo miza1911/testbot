@@ -1,23 +1,14 @@
-app = "bot-z0lezq"        # <-- точное имя твоего приложения
+app = "bot-z0lezq"  # оставь имя приложения как у тебя на Fly
 primary_region = "sin"
+
+kill_signal = "SIGINT"
+kill_timeout = "5s"
 
 [build]
   dockerfile = "Dockerfile"
 
 [env]
-  PORT = "8080"
+  PYTHONUNBUFFERED = "1"
 
-[http_service]
-  internal_port = 8080
-  force_https = true
-  auto_stop_machines = false
-  auto_start_machines = true
-  min_machines_running = 1
-
-[[http_service.checks]]
-  grace_period = "10s"
-  interval = "15s"
-  method = "GET"
-  path = "/"
-  protocol = "http"
-  timeout = "2s"
+[processes]
+  app = "python main.py"
