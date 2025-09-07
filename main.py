@@ -59,6 +59,9 @@ async def predict_cmd(update, context: ContextTypes.DEFAULT_TYPE):
 
 async def inline_query(update, context: ContextTypes.DEFAULT_TYPE):
     user = update.inline_query.from_user
+    # логируем в консоль, чтобы видеть запросы в Fly Logs
+    print(f"INLINE query from @{user.username or user.id}")
+    
     caption = make_caption(username_or_name(user))
     photo_url = random.choice(IMAGES)
 
@@ -78,6 +81,7 @@ async def inline_query(update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     await update.inline_query.answer([result_photo, result_article], cache_time=0, is_personal=True)
+
 
 def main():
     if not BOT_TOKEN:
