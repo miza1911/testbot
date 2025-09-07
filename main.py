@@ -61,7 +61,7 @@ async def start(update, context: ContextTypes.DEFAULT_TYPE):
     uname = me.username
     msg = (
         "Привет, салам, бонжур! Я умею делать комплименты. Счастья, здоровья!🌸 \n\n"
-        "• Для получения комплимента:/nos\n"
+        "• Для получения комплимента: /nos\n"
         
     )
     await update.message.reply_text(msg)
@@ -139,7 +139,7 @@ def main():
 
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler(["start", "help"], start))
-    app.add_handler(CommandHandler("predict", predict_cmd))
+   app.add_handler(CommandHandler(["nos", "predict"], predict_cmd))
     app.add_handler(InlineQueryHandler(inline_query))
     app.add_handler(ChosenInlineResultHandler(on_chosen_inline))     # 1-тап сценарий
     app.add_handler(CallbackQueryHandler(on_callback))               # запасной сценарий
