@@ -1,5 +1,4 @@
-app = "kompli-bot
-"  # оставь имя приложения как у тебя на Fly
+app = "kompli-bot"  # оставь имя приложения как у тебя на Fly
 primary_region = "sin"
 
 kill_signal = "SIGINT"
