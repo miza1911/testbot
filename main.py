@@ -1,12 +1,9 @@
 import os
 import random
-from uuid import uuid4
 from dotenv import load_dotenv
 
 from telegram import (
-    InlineQueryResultArticle,
-    InputTextMessageContent,
-    InputMediaPhoto,
+    InlineQueryResultPhoto,
 )
 from telegram.constants import ParseMode
 from telegram.ext import (
@@ -14,7 +11,6 @@ from telegram.ext import (
     CommandHandler,
     ContextTypes,
     InlineQueryHandler,
-    ChosenInlineResultHandler,
 )
 
 # .env — только для локали; на Fly используем Secrets
@@ -27,6 +23,7 @@ def _load_images():
     env = (os.getenv("IMAGES") or "").strip()
     if env:
         return [u.strip() for u in env.split(",") if u.strip()]
+    # Желательно давать прямые ссылки на изображения. Unsplash работает, но можно добавить параметры.
     return [
         "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee",
         "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429",
@@ -42,10 +39,11 @@ def username_or_name(user) -> str:
     return name
 
 def make_caption(for_user) -> str:
+    import random
     return f"{for_user} · Твой комплимент дня! {random.choice(EMOJIS)}"
 
 def pick_random_photo() -> str:
-    # лёгкий анти-повтор: не возвращаем один и тот же URL дважды подряд
+    import random
     last = getattr(pick_random_photo, "_last", None)
     pool = [u for u in IMAGES if u != last] or IMAGES
     url = random.choice(pool)
@@ -54,8 +52,6 @@ def pick_random_photo() -> str:
 
 # /start /help
 async def start(update, context: ContextTypes.DEFAULT_TYPE):
-    me = await context.bot.get_me()
-    uname = me.username
     msg = (
         "Привет, салам, бонжур! Я умею делать комплименты. Счастья, здоровья!🌸 \n\n"
         "• Для получения комплимента: /nos\n"
@@ -70,44 +66,26 @@ async def predict_cmd(update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_photo(photo=photo_url, caption=caption, parse_mode=ParseMode.HTML)
 
 # ---------- INLINE ----------
-ARTICLE_ID = "predict_inline"
+ARTICLE_ID = "predict_inline_photo"
 
-# 1) Во всплывающем окне показываем ОДНУ карточку с фиксированным превью
 async def inline_query(update, context: ContextTypes.DEFAULT_TYPE):
     user = update.inline_query.from_user
     print(f"INLINE query from @{user.username or user.id}")
 
-    result = InlineQueryResultArticle(
+    photo_url = pick_random_photo()
+    caption = make_caption(username_or_name(user))
+
+    # Сразу отдаём фото — без «получаю…» и без кнопок
+    result = InlineQueryResultPhoto(
         id=ARTICLE_ID,
-        title="Получить комплимент дня!🎉",
-        description="Нажми — и придет твой комплимент!",
-        input_message_content=InputTextMessageContent("⏳ Получаю комплимент…"),
-        thumbnail_url=PREVIEW_URL,  # фиксированное превью из секрета
-        # reply_markup УДАЛЁН — никакой кнопки
+        photo_url=photo_url,
+        thumbnail_url=PREVIEW_URL,
+        caption=caption,
+        parse_mode=ParseMode.HTML,
+        title="Получить комплимент дня! 🎉",  # заголовок карточки в списке
+        description="Нажми — и сразу придёт комплимент",
     )
     await update.inline_query.answer([result], cache_time=0, is_personal=True)
-
-# 2) Нормальный путь: Telegram прислал chosen_inline_result → заменяем текст на фото (1 тап)
-async def on_chosen_inline(update, context: ContextTypes.DEFAULT_TYPE):
-    chosen = update.chosen_inline_result
-    if not chosen or chosen.result_id != ARTICLE_ID:
-        return
-    if not chosen.inline_message_id:
-        print("chosen_inline_result: no inline_message_id; skip edit")
-        return
-
-    user = chosen.from_user
-    caption = make_caption(username_or_name(user))
-    photo_url = pick_random_photo()
-
-    try:
-        await context.bot.edit_message_media(
-            inline_message_id=chosen.inline_message_id,
-            media=InputMediaPhoto(media=photo_url, caption=caption, parse_mode=ParseMode.HTML),
-            reply_markup=None,  # на всякий случай, кнопок всё равно нет
-        )
-    except Exception as e:
-        print(f"edit_message_media (chosen) failed: {e}")
 
 def main():
     if not BOT_TOKEN:
@@ -117,12 +95,10 @@ def main():
     app.add_handler(CommandHandler(["start", "help"], start))
     app.add_handler(CommandHandler(["nos", "predict"], predict_cmd))
     app.add_handler(InlineQueryHandler(inline_query))
-    app.add_handler(ChosenInlineResultHandler(on_chosen_inline))  # 1-тап сценарий
 
     print("Prediction bot is running…")
-    app.run_polling(allowed_updates=["message", "inline_query", "chosen_inline_result"])
+    app.run_polling(allowed_updates=["message", "inline_query"])
 
 if __name__ == "__main__":
     main()
-
 
