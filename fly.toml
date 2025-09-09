@@ -1,12 +1,11 @@
-app = "kompli-bot"
+# ===== fly.toml =====
+app = "kompli-bot"            # <--- ПОМЕНИ на своё имя приложения на Fly
 primary_region = "sin"
 
 [build]
   dockerfile = "Dockerfile"
 
-[http_service]
-  internal_port = 8080       # если твой код слушает HTTP
-  force_https = true
-  auto_stop_machines = true
-  auto_start_machines = true
-  min_machines_running = 1
+[processes]
+  app = "python main.py"
+
+# Если ты вдруг добавишь healthcheck — можно добавить блок [checks], но для воркера это не обязательно.
