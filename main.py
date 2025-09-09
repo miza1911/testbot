@@ -4,12 +4,9 @@ from uuid import uuid4
 from dotenv import load_dotenv
 
 from telegram import (
-    InlineQueryResultArticle,  # оставил, если пригодится позже
+    InlineQueryResultArticle,
     InputTextMessageContent,
     InputMediaPhoto,
-    InlineKeyboardButton,      # можно удалить, если точно не нужен
-    InlineKeyboardMarkup,      # можно удалить, если точно не нужен
-    InlineQueryResultPhoto,    # <-- добавили фото-результат
 )
 from telegram.constants import ParseMode
 from telegram.ext import (
@@ -18,7 +15,6 @@ from telegram.ext import (
     ContextTypes,
     InlineQueryHandler,
     ChosenInlineResultHandler,
-    CallbackQueryHandler,      # можно удалить, если точно не нужен
 )
 
 # .env — только для локали; на Fly используем Secrets
@@ -63,7 +59,6 @@ async def start(update, context: ContextTypes.DEFAULT_TYPE):
     msg = (
         "Привет, салам, бонжур! Я умею делать комплименты. Счастья, здоровья!🌸 \n\n"
         "• Для получения комплимента: /nos\n"
-        
     )
     await update.message.reply_text(msg)
 
@@ -76,24 +71,23 @@ async def predict_cmd(update, context: ContextTypes.DEFAULT_TYPE):
 
 # ---------- INLINE ----------
 ARTICLE_ID = "predict_inline"
-BTN_PAYLOAD = "go_predict"   # не используется, можно оставить как есть
 
-# 1) Во всплывающем окне показываем ОДНУ карточку как ФОТО с фиксированным превью
-#    По клику Telegram отправляет ФОТО (PREVIEW_URL), а мы тут же заменяем его на рандомное.
+# 1) Во всплывающем окне показываем ОДНУ карточку с фиксированным превью
 async def inline_query(update, context: ContextTypes.DEFAULT_TYPE):
     user = update.inline_query.from_user
     print(f"INLINE query from @{user.username or user.id}")
 
-    result = InlineQueryResultPhoto(
+    result = InlineQueryResultArticle(
         id=ARTICLE_ID,
-        photo_url=PREVIEW_URL,        # фиксированное превью/фото из секрета
-        thumbnail_url=PREVIEW_URL,    # миниатюра такая же
-        caption="⏳ Получаю комплимент…",  # временная подпись до замены
-        parse_mode=ParseMode.HTML,
+        title="Получить комплимент дня!🎉",
+        description="Нажми — и придет твой комплимент!",
+        input_message_content=InputTextMessageContent("⏳ Получаю комплимент…"),
+        thumbnail_url=PREVIEW_URL,  # фиксированное превью из секрета
+        # reply_markup УДАЛЁН — никакой кнопки
     )
     await update.inline_query.answer([result], cache_time=0, is_personal=True)
 
-# 2) После выбора плитки Telegram шлёт chosen_inline_result → заменяем фото на рандомное
+# 2) Нормальный путь: Telegram прислал chosen_inline_result → заменяем текст на фото (1 тап)
 async def on_chosen_inline(update, context: ContextTypes.DEFAULT_TYPE):
     chosen = update.chosen_inline_result
     if not chosen or chosen.result_id != ARTICLE_ID:
@@ -110,26 +104,10 @@ async def on_chosen_inline(update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.edit_message_media(
             inline_message_id=chosen.inline_message_id,
             media=InputMediaPhoto(media=photo_url, caption=caption, parse_mode=ParseMode.HTML),
+            reply_markup=None,  # на всякий случай, кнопок всё равно нет
         )
     except Exception as e:
         print(f"edit_message_media (chosen) failed: {e}")
-
-# 2Б) Запасной путь (кнопка) нам больше не нужен, но оставлю обработчик как есть — вдруг пригодится
-async def on_callback(update, context: ContextTypes.DEFAULT_TYPE):
-    q = update.callback_query
-    if not q or q.data != BTN_PAYLOAD:
-        return
-
-    user = q.from_user
-    caption = make_caption(username_or_name(user))
-    photo_url = pick_random_photo()
-
-    try:
-        await q.edit_message_media(
-            media=InputMediaPhoto(media=photo_url, caption=caption, parse_mode=ParseMode.HTML)
-        )
-    except Exception as e:
-        print(f"edit_message_media (callback) failed: {e}")
 
 def main():
     if not BOT_TOKEN:
@@ -139,12 +117,12 @@ def main():
     app.add_handler(CommandHandler(["start", "help"], start))
     app.add_handler(CommandHandler(["nos", "predict"], predict_cmd))
     app.add_handler(InlineQueryHandler(inline_query))
-    app.add_handler(ChosenInlineResultHandler(on_chosen_inline))     # 1-тап сценарий
-    app.add_handler(CallbackQueryHandler(on_callback))               # запасной сценарий (не обязателен)
+    app.add_handler(ChosenInlineResultHandler(on_chosen_inline))  # 1-тап сценарий
 
     print("Prediction bot is running…")
-    app.run_polling(allowed_updates=["message", "inline_query", "chosen_inline_result", "callback_query"])
+    app.run_polling(allowed_updates=["message", "inline_query", "chosen_inline_result"])
 
 if __name__ == "__main__":
     main()
+
 
