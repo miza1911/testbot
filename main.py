@@ -26,6 +26,12 @@ load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 EMOJIS = ["✨", "🌟", "🍀", "🌈", "💫", "🧿", "🪄", "🎉", "☀️", "🌸"]
 
+PIN_USER  = (os.getenv("PIN_USER") or "").strip().lstrip("@").lower()
+PIN_MEDIA = (os.getenv("PIN_MEDIA") or "").strip()
+OWNER_ID  = int(os.getenv("OWNER_ID", "0"))
+
+PIN_MEDIA_ID: str | None = None  # сюда положим file_id после прогрева (если PIN_MEDIA был URL)
+
 def _load_images():
     env = (os.getenv("IMAGES") or "").strip()
     if env:
@@ -37,6 +43,31 @@ def _load_images():
 
 IMAGES = _load_images()
 PREVIEW_URL = os.getenv("PREVIEW_URL") or IMAGES[0]
+
+# >>> added: helpers for inline pin
+async def warmup_cache(app: Application):
+    """Если PIN_MEDIA это URL — один раз шлём его себе/в служебный канал и сохраняем file_id."""
+    global PIN_MEDIA_ID
+    if OWNER_ID and PIN_MEDIA and PIN_MEDIA.startswith("http"):
+        try:
+            msg = await app.bot.send_photo(
+                chat_id=OWNER_ID,
+                photo=PIN_MEDIA,
+                disable_notification=True,
+                protect_content=True,
+            )
+            PIN_MEDIA_ID = msg.photo[-1].file_id
+            print("Pinned image warmed -> file_id saved")
+        except Exception as e:
+            print(f"warmup pinned failed: {e}")
+
+def _is_pinned_username(uname: str | None) -> bool:
+    return bool(PIN_USER) and (uname or "").strip().lstrip("@").lower() == PIN_USER
+
+def _pinned_media() -> str | None:
+    # отдаём быстрый file_id, если прогрели; иначе то, что есть
+    return PIN_MEDIA_ID or (PIN_MEDIA or None)
+# <<< added
 
 def username_or_name(user) -> str:
     if user.username:
@@ -82,12 +113,20 @@ async def inline_query(update, context: ContextTypes.DEFAULT_TYPE):
     user = update.inline_query.from_user
     print(f"INLINE query from @{user.username or user.id}")
 
+    # >>> added: персонализируем превью для закреплённого пользователя (если PIN_MEDIA — URL)
+    thumb = PREVIEW_URL
+    if _is_pinned_username(getattr(user, "username", None)):
+        pm = _pinned_media()
+        if pm and isinstance(pm, str) and pm.startswith("http"):
+            thumb = pm
+    # <<< added
+
     result = InlineQueryResultArticle(
         id=ARTICLE_ID,
         title="Получить комплимент дня!🎉",
         description="Нажми — и придет твой комплимент!",
         input_message_content=InputTextMessageContent("⏳ Получаю комплимент…"),
-        thumbnail_url=PREVIEW_URL,  # фиксированное превью из секрета
+        thumbnail_url=thumb,  # фиксированное/персональное превью
         reply_markup=InlineKeyboardMarkup(
             [[InlineKeyboardButton("Получить сейчас", callback_data=BTN_PAYLOAD)]]
         ),
@@ -106,6 +145,13 @@ async def on_chosen_inline(update, context: ContextTypes.DEFAULT_TYPE):
     user = chosen.from_user
     caption = make_caption(username_or_name(user))
     photo_url = pick_random_photo()
+
+    # >>> added: если это закреплённый пользователь — подменяем на PIN_MEDIA
+    if _is_pinned_username(getattr(user, "username", None)):
+        pm = _pinned_media()
+        if pm:
+            photo_url = pm
+    # <<< added
 
     try:
         await context.bot.edit_message_media(
@@ -126,6 +172,13 @@ async def on_callback(update, context: ContextTypes.DEFAULT_TYPE):
     caption = make_caption(username_or_name(user))
     photo_url = pick_random_photo()
 
+    # >>> added: пин только для инлайна — кнопка тоже относится к инлайн-сообщению
+    if _is_pinned_username(getattr(user, "username", None)):
+        pm = _pinned_media()
+        if pm:
+            photo_url = pm
+    # <<< added
+
     try:
         await q.edit_message_media(
             media=InputMediaPhoto(media=photo_url, caption=caption, parse_mode=ParseMode.HTML)
@@ -144,9 +197,15 @@ def main():
     app.add_handler(ChosenInlineResultHandler(on_chosen_inline))     # 1-тап сценарий
     app.add_handler(CallbackQueryHandler(on_callback))               # запасной сценарий
 
+    # >>> added: прогрев pinned-URL до file_id (если задан OWNER_ID)
+    async def _startup(app_: Application):
+        await warmup_cache(app_)
+        print("Startup warmup done")
+    app.post_init = _startup
+    # <<< added
+
     print("Prediction bot is running…")
     app.run_polling(allowed_updates=["message", "inline_query", "chosen_inline_result", "callback_query"])
 
 if __name__ == "__main__":
     main()
-
